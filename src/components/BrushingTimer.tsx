@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, X } from "lucide-react";
+import { Play, Pause, X, Camera } from "lucide-react";
 import { Mode } from "@/types";
 import {
   getEncouragementMessage,
@@ -236,6 +236,10 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
   const { toast } = useToast();
   const isLearningMode = normalizedMode === "learning";
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const [useSelfieMode, setUseSelfieMode] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   // Select random video on component mount
   const videoSource = useMemo(() => {
@@ -252,6 +256,66 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
     setVideoError(false);
     setVideoLoading(true);
   }, [videoSource]);
+
+  const stopCameraStream = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+    }
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (normalizedMode !== "kids") {
+      setUseSelfieMode(false);
+      setCameraError(null);
+      stopCameraStream();
+    }
+  }, [normalizedMode, stopCameraStream]);
+
+  useEffect(() => {
+    if (!(normalizedMode === "kids" && useSelfieMode)) {
+      stopCameraStream();
+      return;
+    }
+
+    setCameraError(null);
+
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError("카메라를 지원하지 않는 환경입니다.");
+      return;
+    }
+
+    let cancelled = false;
+
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "user" }, audio: false })
+      .then((stream) => {
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        cameraStreamRef.current = stream;
+        if (cameraVideoRef.current) {
+          cameraVideoRef.current.srcObject = stream;
+          cameraVideoRef.current.play().catch((error) => {
+            console.warn("카메라 재생이 차단되었습니다:", error);
+          });
+        }
+      })
+      .catch((error) => {
+        console.warn("카메라 접근 실패:", error);
+        setCameraError("카메라 접근 권한을 허용해 주세요.");
+        setUseSelfieMode(false);
+      });
+
+    return () => {
+      cancelled = true;
+      stopCameraStream();
+    };
+  }, [normalizedMode, stopCameraStream, useSelfieMode]);
 
   const content = useMemo(() => {
     if (normalizedMode === "kids") return kidsContent;
@@ -462,7 +526,7 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
   };
 
   const renderVideoMeta = () => {
-    if (!videoSource || videoError) return null;
+    if (!videoSource || videoError || (normalizedMode === "kids" && useSelfieMode)) return null;
     return (
       <div className="flex flex-col gap-1 text-xs text-muted-foreground">
         <span className="text-sm font-medium text-foreground">
@@ -474,11 +538,72 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
     );
   };
 
+  const renderKidsCamera = () => {
+    return (
+      <div className="space-y-3">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+          <video
+            ref={cameraVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="h-full w-full object-cover"
+          />
+          {cameraError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+              <Card className="max-w-xs p-4 text-center text-sm text-foreground">
+                <p>{cameraError}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  브라우저 설정에서 카메라 권한을 허용한 뒤 다시 시도해 주세요.
+                </p>
+              </Card>
+            </div>
+          )}
+        </div>
+        {!cameraError && (
+          <Card className="border border-accent/30 bg-accent/10 p-4 text-center text-sm text-foreground">
+            <p>카메라를 보며 입을 크게 벌리고 좌우로 움직이며 양치 동작을 따라 해보세요!</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              화면을 통해 올바른 방향으로 칫솔질하는 모습을 스스로 확인할 수 있어요.
+            </p>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
+  const renderMainContent = () => {
+    if (normalizedMode === "kids" && useSelfieMode) {
+      return renderKidsCamera();
+    }
+
+    return (
+      <div className="space-y-3">
+        {renderVideoPlayer()}
+        {renderVideoMeta()}
+      </div>
+    );
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
       <Card className="w-full max-w-4xl p-6 md:p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{timerTitle}</h2>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold">{timerTitle}</h2>
+            {normalizedMode === "kids" && (
+              <Button
+                type="button"
+                size="sm"
+                variant={useSelfieMode ? "secondary" : "outline"}
+                onClick={() => setUseSelfieMode((prev) => !prev)}
+                className="inline-flex items-center gap-2"
+              >
+                <Camera className="h-4 w-4" />
+                {useSelfieMode ? "영상 보기" : "카메라"}
+              </Button>
+            )}
+          </div>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="h-5 w-5" />
           </Button>
@@ -524,16 +649,12 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
                   저작권 걱정 없이 사용할 수 있는 학습용 영상을 자동으로 불러옵니다.
                 </p>
                 <div className="mt-3 space-y-3">
-                  {renderVideoPlayer()}
-                  {renderVideoMeta()}
+                  {renderMainContent()}
                 </div>
               </Card>
             </div>
           ) : (
-            <div className="space-y-3">
-              {renderVideoPlayer()}
-              {renderVideoMeta()}
-            </div>
+            renderMainContent()
           )}
 
           {/* Timer Display */}
