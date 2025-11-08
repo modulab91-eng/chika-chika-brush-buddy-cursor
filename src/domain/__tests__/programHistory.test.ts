@@ -11,8 +11,10 @@ describe("programHistory", () => {
       expect(entry.prompts).toBeDefined();
       expect(Array.isArray(entry.prompts)).toBe(true);
       expect(entry.prompts.length).toBeGreaterThan(0);
-      entry.prompts.forEach((prompt) => {
-        expect(prompt).toMatch(/사용자 질의/);
+      entry.prompts.forEach(({ text, agent, credits }) => {
+        expect(text).toMatch(/사용자 질의/);
+        expect(agent).toBeTruthy();
+        expect(credits).toMatch(/크레딧/);
       });
     });
   });

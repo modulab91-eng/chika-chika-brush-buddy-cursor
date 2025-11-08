@@ -108,9 +108,19 @@ const ProgramInfoButton = () => {
                 <div className="mt-4 space-y-3 text-sm">
                   <section>
                     <h5 className="font-semibold">사용자 프롬프트</h5>
-                    <ul className="ml-3 list-disc space-y-1">
+                    <ul className="space-y-2">
                       {version.prompts.map((prompt) => (
-                        <li key={prompt}>{prompt}</li>
+                        <li
+                          key={prompt.text}
+                          className="rounded-md border border-muted bg-muted/60 p-3"
+                        >
+                          <p className="text-sm font-medium text-foreground">
+                            {prompt.text}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Agent: {prompt.agent} · 사용 크레딧: {prompt.credits}
+                          </p>
+                        </li>
                       ))}
                     </ul>
                   </section>

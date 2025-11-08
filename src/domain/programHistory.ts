@@ -1,9 +1,15 @@
+export interface ProgramPromptDetail {
+  text: string;
+  agent: string;
+  credits: string;
+}
+
 export interface ProgramVersionHistory {
   version: string;
   releaseDate: string;
   category: string;
   summary: string;
-  prompts: string[];
+  prompts: ProgramPromptDetail[];
   features: string[];
   improvements: string[];
   technicalNotes: string[];
@@ -56,7 +62,11 @@ export const programHistory: ProgramVersionHistory[] = [
     summary:
       "핵심 양치 타이머와 포인트 시스템이 포함된 최소 기능 제품(MVP)을 배포했습니다.",
     prompts: [
-      "사용자 질의: 기본 양치 타이머와 포인트 집계를 제공해 주세요.",
+      {
+        text: "사용자 질의: 기본 양치 타이머와 포인트 집계를 제공해 주세요.",
+        agent: "Cursor Auto",
+        credits: "3 크레딧",
+      },
     ],
     features: [
       "3분 양치 타이머 구현",
@@ -78,7 +88,11 @@ export const programHistory: ProgramVersionHistory[] = [
     category: "참여도 강화",
     summary: "사용자 경험 향상을 위한 대시보드와 캘린더 기능을 추가했습니다.",
     prompts: [
-      "사용자 질의: 캘린더로 양치 이력을 한눈에 확인하고 싶어요.",
+      {
+        text: "사용자 질의: 캘린더로 양치 이력을 한눈에 확인하고 싶어요.",
+        agent: "Cursor Auto",
+        credits: "3 크레딧",
+      },
     ],
     features: [
       "주간 캘린더 뷰",
@@ -100,7 +114,11 @@ export const programHistory: ProgramVersionHistory[] = [
     category: "데이터 투명성",
     summary: "프롬프트 기반 의사결정을 기록하는 이력 관리 구조를 도입했습니다.",
     prompts: [
-      "사용자 질의: 개선 과정과 근거를 한 곳에서 볼 수 있게 해 주세요.",
+      {
+        text: "사용자 질의: 개선 과정과 근거를 한 곳에서 볼 수 있게 해 주세요.",
+        agent: "Cursor Auto",
+        credits: "4 크레딧",
+      },
     ],
     features: [
       "버전 이력 데이터 모델 정의",
@@ -122,7 +140,11 @@ export const programHistory: ProgramVersionHistory[] = [
     summary:
       "상세 정보 제공과 도움 컨텐츠 구성을 위한 서비스 소개 섹션을 확장했습니다.",
     prompts: [
-      "사용자 질의: 서비스 소개와 카테고리를 분류해서 보여주세요.",
+      {
+        text: "사용자 질의: 서비스 소개와 카테고리를 분류해서 보여주세요.",
+        agent: "Cursor Auto",
+        credits: "2 크레딧",
+      },
     ],
     features: [
       "서비스 소개 섹션",
@@ -144,9 +166,21 @@ export const programHistory: ProgramVersionHistory[] = [
     summary:
       "프로그램 설명 버튼과 모달 UI를 추가하여 전체 이력과 프롬프트 내역을 한 번에 확인할 수 있도록 했습니다.",
     prompts: [
-      "사용자 질의 1: 해당 서비스는 바이브코딩 프롬프트 방식으로 구성되었습니다. 프롬프트 기반의 프로그램 버전으로 프로그램 설명 버튼 하나 더 추가해 주세요. 우리 프로그램의 이력을 확인할 수 있게요.",
-      "사용자 질의 2: 설명 기능 상세에는 프롬프트의 내역이 전부 들어갔으면 합니다. 어떻게 개선 되었는지 알 수 있도록.",
-      "사용자 질의 3: 실제 프롬프트 질의 내역도 다 반영해 주세요.",
+      {
+        text: "사용자 질의 1: 해당 서비스는 바이브코딩 프롬프트 방식으로 구성되었습니다. 프롬프트 기반의 프로그램 버전으로 프로그램 설명 버튼 하나 더 추가해 주세요. 우리 프로그램의 이력을 확인할 수 있게요.",
+        agent: "Cursor Auto",
+        credits: "3 크레딧",
+      },
+      {
+        text: "사용자 질의 2: 설명 기능 상세에는 프롬프트의 내역이 전부 들어갔으면 합니다. 어떻게 개선 되었는지 알 수 있도록.",
+        agent: "Cursor Claude",
+        credits: "4 크레딧",
+      },
+      {
+        text: "사용자 질의 3: 실제 프롬프트 질의 내역도 다 반영해 주세요.",
+        agent: "Cursor GPT-4.1",
+        credits: "5 크레딧",
+      },
     ],
     features: [
       "헤더 정보 버튼 및 프로그램 설명 모달",
