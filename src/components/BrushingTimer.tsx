@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, X, Camera } from "lucide-react";
+import { Play, Pause, X, Camera, Sparkles } from "lucide-react";
 import { Mode } from "@/types";
 import {
   getEncouragementMessage,
@@ -12,6 +12,9 @@ import {
 } from "@/utils/brushingData";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import ARBrushingGuide from "@/components/ARBrushingGuide";
+import { useFaceTracking } from "@/hooks/useFaceTracking";
+import { useBrushingAnalysis } from "@/hooks/useBrushingAnalysis";
 
 interface BrushingTimerProps {
   mode: Mode;
@@ -238,8 +241,28 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [useSelfieMode, setUseSelfieMode] = useState(false);
+  const [useARMode, setUseARMode] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [currentZone, setCurrentZone] = useState(0);
+
+  // AR 기능: 얼굴 추적 및 양치 동작 분석
+  const { landmarks, isLoading: isFaceTrackingLoading } = useFaceTracking(
+    cameraVideoRef,
+    normalizedMode === "kids" && useSelfieMode && useARMode,
+    {
+      minFaceDetectionConfidence: 0.5,
+      minFacePresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    }
+  );
+
+  const { score: arScore, feedback: arFeedback, isCorrectMotion } = useBrushingAnalysis(
+    landmarks,
+    currentZone,
+    normalizedMode === "kids" && useSelfieMode && useARMode && isRunning
+  );
 
   // Select random video on component mount
   const videoSource = useMemo(() => {
@@ -270,10 +293,23 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
   useEffect(() => {
     if (normalizedMode !== "kids") {
       setUseSelfieMode(false);
+      setUseARMode(false);
       setCameraError(null);
       stopCameraStream();
     }
   }, [normalizedMode, stopCameraStream]);
+
+  // 구역 변경 로직 (45초마다)
+  useEffect(() => {
+    if (!isRunning || !useARMode) return;
+    
+    const elapsed = TOTAL_SECONDS - seconds;
+    const zoneIndex = Math.floor(elapsed / 45);
+    
+    if (zoneIndex !== currentZone && zoneIndex < 4) {
+      setCurrentZone(zoneIndex);
+    }
+  }, [seconds, isRunning, useARMode, currentZone]);
 
   useEffect(() => {
     if (!(normalizedMode === "kids" && useSelfieMode)) {
@@ -336,25 +372,31 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
   const progress = ((TOTAL_SECONDS - seconds) / TOTAL_SECONDS) * 100;
 
   const handleComplete = useCallback(() => {
+    // AR 모드 사용 시 보너스 점수 계산
+    const bonusPoints = useARMode && arScore > 50 ? Math.floor(arScore / 10) : 0;
+    const totalPoints = POINTS_PER_SESSION + bonusPoints;
+
     const session = {
       id: Date.now().toString(),
       date: new Date(),
       time: getTimeOfDay(),
       completed: true,
       duration: TOTAL_SECONDS,
-      points: POINTS_PER_SESSION,
+      points: totalPoints,
     };
 
     saveBrushSession(session);
-    addPoints(POINTS_PER_SESSION);
+    addPoints(totalPoints);
 
     toast({
       title: getEncouragementMessage(normalizedMode, true),
-      description: `${POINTS_PER_SESSION} 포인트를 획득했어요!`,
+      description: useARMode 
+        ? `${totalPoints} 포인트를 획득했어요! (AR 보너스: +${bonusPoints}점 🌟)` 
+        : `${totalPoints} 포인트를 획득했어요!`,
     });
 
     onComplete();
-  }, [normalizedMode, toast, onComplete]);
+  }, [normalizedMode, toast, onComplete, useARMode, arScore]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -547,8 +589,14 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
             autoPlay
             playsInline
             muted
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transform scale-x-[-1]"
           />
+          {useARMode && (
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 w-full h-full transform scale-x-[-1]"
+            />
+          )}
           {cameraError && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/70">
               <Card className="max-w-xs p-4 text-center text-sm text-foreground">
@@ -559,14 +607,82 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
               </Card>
             </div>
           )}
+          {useARMode && isFaceTrackingLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <Card className="p-4 text-center text-sm text-white">
+                <div className="h-8 w-8 mx-auto mb-2 animate-spin rounded-full border-b-2 border-white" />
+                <p>AR 가이드 준비 중...</p>
+              </Card>
+            </div>
+          )}
         </div>
+        
+        {/* AR 모드 토글 버튼 */}
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            size="sm"
+            variant={useARMode ? "default" : "outline"}
+            onClick={() => setUseARMode((prev) => !prev)}
+            className="inline-flex items-center gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            {useARMode ? "AR 가이드 켜짐 ✨" : "AR 가이드 켜기"}
+          </Button>
+        </div>
+
         {!cameraError && (
-          <Card className="border border-accent/30 bg-accent/10 p-4 text-center text-sm text-foreground">
-            <p>카메라를 보며 입을 크게 벌리고 좌우로 움직이며 양치 동작을 따라 해보세요!</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              화면을 통해 올바른 방향으로 칫솔질하는 모습을 스스로 확인할 수 있어요.
-            </p>
+          <Card className={cn(
+            "border p-4 text-center text-sm text-foreground transition-all",
+            useARMode 
+              ? "border-accent/50 bg-accent/20" 
+              : "border-accent/30 bg-accent/10"
+          )}>
+            {useARMode ? (
+              <div>
+                <p className="font-semibold text-accent mb-2">{arFeedback}</p>
+                <div className="flex items-center justify-center gap-4 mt-3">
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">점수:</span>{' '}
+                    <span className="font-bold text-accent">{arScore}점</span>
+                  </div>
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">동작:</span>{' '}
+                    <span className={cn(
+                      "font-bold",
+                      isCorrectMotion ? "text-green-600" : "text-orange-600"
+                    )}>
+                      {isCorrectMotion ? "좋아요! 🎉" : "조금 더! 💪"}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  AR 가이드를 따라 입을 크게 벌리고 양치 동작을 해보세요!
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p>카메라를 보며 입을 크게 벌리고 좌우로 움직이며 양치 동작을 따라 해보세요!</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  화면을 통해 올바른 방향으로 칫솔질하는 모습을 스스로 확인할 수 있어요.
+                </p>
+                <p className="mt-2 text-xs font-semibold text-accent">
+                  💡 AR 가이드를 켜면 실시간으로 양치 방향을 안내받을 수 있어요!
+                </p>
+              </div>
+            )}
           </Card>
+        )}
+
+        {/* AR 가이드 렌더링 */}
+        {useARMode && canvasRef.current && (
+          <ARBrushingGuide
+            landmarks={landmarks}
+            canvasRef={canvasRef}
+            currentZone={currentZone}
+            timeLeft={seconds}
+            isCorrectMotion={isCorrectMotion}
+          />
         )}
       </div>
     );
