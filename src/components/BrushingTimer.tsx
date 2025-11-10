@@ -25,18 +25,19 @@ interface BrushingTimerProps {
 const TOTAL_SECONDS = 180; // 3 minutes
 const POINTS_PER_SESSION = 10;
 
-// Background music for each mode (royalty-free sources from Pixabay)
-// All music is licensed under Pixabay Content License (free for commercial use, no attribution required)
+// Background music for each mode (royalty-free sources)
+// Using incompetech.com (Kevin MacLeod) - CC BY 3.0 License
+// Music by Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 3.0
 const BACKGROUND_MUSIC = {
   kids: [
-    "https://cdn.pixabay.com/audio/2022/03/10/audio_4a456a6ff4.mp3", // Happy Kids Music
-    "https://cdn.pixabay.com/audio/2022/08/02/audio_95c2c2240d.mp3", // Playful Children
-    "https://cdn.pixabay.com/audio/2023/03/24/audio_9e4b861ae0.mp3", // Fun Kids Song
+    "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3", // Happy upbeat
+    "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wallpaper.mp3", // Cheerful
+    "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixel%20Peeker%20Polka%20-%20faster.mp3", // Playful
   ],
   learning: [
-    "https://cdn.pixabay.com/audio/2022/03/24/audio_c3bc5d30dd.mp3", // Lofi Study Beat
-    "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3", // Calm Focus Music
-    "https://cdn.pixabay.com/audio/2022/08/23/audio_80c38374fe.mp3", // Peaceful Study
+    "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Prelude%20and%20Action.mp3", // Focus music
+    "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deliberate%20Thought.mp3", // Calm study
+    "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Backed%20Vibes%20Clean.mp3", // Peaceful
   ],
   normal: [] as string[], // No background music for normal mode
 };
@@ -337,19 +338,37 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
 
   // Background music initialization and control
   useEffect(() => {
-    if (!backgroundMusicUrl) return;
+    if (!backgroundMusicUrl) {
+      console.log("배경 음악 없음 (일반 모드)");
+      return;
+    }
+
+    console.log("배경 음악 초기화:", backgroundMusicUrl);
 
     // Create audio element
     if (!audioRef.current) {
       audioRef.current = new Audio(backgroundMusicUrl);
       audioRef.current.loop = true;
       audioRef.current.volume = 0.3; // Set volume to 30%
+      
+      // Add event listeners for debugging
+      audioRef.current.addEventListener('loadeddata', () => {
+        console.log("배경 음악 로드 완료");
+      });
+      audioRef.current.addEventListener('error', (e) => {
+        console.error("배경 음악 로드 실패:", e);
+      });
+      audioRef.current.addEventListener('playing', () => {
+        console.log("배경 음악 재생 중");
+      });
     }
 
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         audioRef.current = null;
+        console.log("배경 음악 정리 완료");
       }
     };
   }, [backgroundMusicUrl]);
@@ -359,12 +378,22 @@ const BrushingTimer = ({ mode, onComplete, onCancel }: BrushingTimerProps) => {
     if (!audioRef.current || !backgroundMusicUrl) return;
 
     if (isRunning) {
+      console.log("타이머 시작 - 배경 음악 재생 시도");
       // Play music when timer starts
-      audioRef.current.play().catch((error) => {
-        console.warn("배경 음악 자동 재생이 차단되었습니다:", error);
-        // Fallback: User interaction required for autoplay
-      });
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("배경 음악 재생 성공!");
+          })
+          .catch((error) => {
+            console.warn("배경 음악 자동 재생이 차단되었습니다:", error);
+            console.log("사용자가 음소거를 해제하거나 상호작용하면 재생됩니다.");
+          });
+      }
     } else {
+      console.log("타이머 정지 - 배경 음악 일시정지");
       // Pause music when timer stops
       audioRef.current.pause();
     }
