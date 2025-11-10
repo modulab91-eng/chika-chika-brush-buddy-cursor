@@ -196,5 +196,56 @@ export const programHistory: ProgramVersionHistory[] = [
       "Vitest + React Testing Library 기반 기능 E2E 흐름 테스트 추가",
     ],
   },
+  {
+    version: "v1.5",
+    releaseDate: "2025-11-10",
+    category: "AI/AR 양치 가이드",
+    summary:
+      "MediaPipe 얼굴 추적 기술을 활용한 실시간 AR 양치 가이드 기능을 추가하여 아이들의 올바른 양치 습관 형성을 돕습니다.",
+    prompts: [
+      {
+        text: "사용자 질의 1: 현재 치카치카 서비스의 양치 타이머 화면을 보니 AR 기능을 추가하기에 이미 훌륭한 기반이 마련되어 있습니다! Cursor 환경에서 바로 적용할 수 있는 구체적인 구현 방안을 단계별로 제시해드리겠습니다.",
+        agent: "GenSpark AI",
+        credits: "0 크레딧 (GenSpark 무제한)",
+      },
+      {
+        text: "사용자 질의 2: MediaPipe를 활용한 실시간 얼굴 추적 및 AR 오버레이 기능 구현",
+        agent: "GenSpark AI",
+        credits: "0 크레딧 (GenSpark 무제한)",
+      },
+      {
+        text: "사용자 질의 3: 4구역 양치 시스템 및 점수 보상 메커니즘 구현",
+        agent: "GenSpark AI",
+        credits: "0 크레딧 (GenSpark 무제한)",
+      },
+    ],
+    features: [
+      "MediaPipe Face Mesh 기반 실시간 얼굴 랜드마크 추적 (468개 포인트)",
+      "4구역 시스템: 상단 앞니/왼쪽 어금니/오른쪽 어금니/하단 앞니 (각 45초)",
+      "실시간 AR 오버레이: 구역별 색상 가이드 및 방향 화살표",
+      "입 벌림 정도 및 움직임 패턴 실시간 분석",
+      "점수 시스템: 올바른 동작 시 점수 획득 + AR 보너스 포인트",
+      "AR 모드 토글 버튼 및 실시간 피드백",
+      "애니메이션 효과: 맥박 효과 및 동적 방향 안내",
+      "미러 모드 카메라: 좌우 반전으로 자연스러운 사용 경험",
+    ],
+    improvements: [
+      "성능 최적화: 30fps 제한으로 배터리 효율 향상",
+      "조건부 렌더링: AR 모드 활성화 시에만 얼굴 추적 실행",
+      "메모리 관리: 최근 10프레임만 저장하여 효율성 확보",
+      "GPU 가속: MediaPipe GPU delegate 활용",
+      "사용자 경험: 실시간 시각적 피드백 및 격려 메시지",
+      "개인정보 보호: 모든 처리는 클라이언트 사이드, 서버 전송 없음",
+    ],
+    technicalNotes: [
+      "@mediapipe/tasks-vision 패키지 통합",
+      "useFaceTracking 커스텀 훅: MediaPipe Face Landmarker 초기화 및 실시간 감지",
+      "useBrushingAnalysis 커스텀 훅: 입 벌림 계산, 움직임 패턴 분석, 점수 관리",
+      "ARBrushingGuide 컴포넌트: Canvas API 기반 AR 오버레이 렌더링",
+      "BrushingTimer 통합: AR 기능 완전 통합 및 보너스 점수 시스템",
+      "TypeScript 타입 안정성: NormalizedLandmark 인터페이스 활용",
+      "반응형 디자인: 모바일 최적화 및 다양한 화면 크기 지원",
+    ],
+  },
 ];
 
