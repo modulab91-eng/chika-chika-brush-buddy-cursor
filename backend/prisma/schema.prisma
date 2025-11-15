@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 사용자 모델
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String?    // Google 로그인 사용자는 null
+  name      String
+  picture   String?
+  authType  AuthType   @default(EMAIL) // EMAIL, GOOGLE, GUEST
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // 관계
+  brushingRecords BrushingRecord[]
+
+  @@map("users")
+}
+
+// 인증 타입
+enum AuthType {
+  EMAIL
+  GOOGLE
+  GUEST
+}
+
+// 칫솔질 기록
+model BrushingRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  duration  Int      // 칫솔질 시간 (초)
+  score     Int      // 점수
+  mode      String   // normal, kids, parent
+  
+  topFront  Int      @default(0) // 상단 앞니
+  leftBack  Int      @default(0) // 왼쪽 어금니
+  rightBack Int      @default(0) // 오른쪽 어금니
+  bottomFront Int    @default(0) // 하단 앞니
+  
+  createdAt DateTime @default(now())
+
+  @@map("brushing_records")
+}
